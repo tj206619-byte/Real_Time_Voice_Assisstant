@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VoicePilot — Advanced Real-Time AI Voice Assistant</title>
+  <meta name="description" content="Advanced real-time AI voice assistant featuring streaming STT, LLM tool calling, streaming TTS, and instant barge-in interruption." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="brand">
+        <div class="brand-icon">
+          <div class="pulse-ring"></div>
+          <span class="icon-core">⚡</span>
+        </div>
+        <div class="brand-text">
+          <h1>VOICEPILOT</h1>
+          <span class="badge-tag">ADVANCED REAL-TIME</span>
+        </div>
+      </div>
+
+      <div class="header-status-group">
+        <div class="connection-badge" id="connectionBadge">
+          <span class="status-dot"></span>
+          <span class="status-label">Disconnected</span>
+        </div>
+        <button class="icon-btn" id="openSettingsBtn" title="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <main class="main-layout">
+      <!-- Left Column: Core Voice Agent Display -->
+      <section class="agent-centerpiece">
+        <!-- Live State Indicator Badge -->
+        <div class="state-pill state-idle" id="statePill">
+          <div class="state-indicator-dot"></div>
+          <span id="stateText">IDLE</span>
+        </div>
+
+        <!-- Visualizer Orb -->
+        <div class="orb-container">
+          <div class="orb-rings" id="orbRings"></div>
+          <div class="orb-visualizer" id="orbCore">
+            <canvas id="waveformCanvas" width="300" height="300"></canvas>
+          </div>
+        </div>
+
+        <!-- Active Transcripts Box -->
+        <div class="transcription-container">
+          <!-- User Live Voice / Partial Transcript -->
+          <div class="speech-bubble user-bubble" id="userSpeechCard">
+            <div class="bubble-header">
+              <span class="bubble-role">YOU</span>
+              <span class="live-dot" id="micLiveDot">● LIVE</span>
+            </div>
+            <p class="transcript-text" id="userTranscript">Click "Start Voice Session" or speak to begin...</p>
+          </div>
+
+          <!-- Assistant Response Stream -->
+          <div class="speech-bubble ai-bubble" id="aiSpeechCard">
+            <div class="bubble-header">
+              <span class="bubble-role">VOICEPILOT</span>
+              <span class="audio-stream-badge" id="audioStreamBadge">🔊 STREAMING</span>
+            </div>
+            <p class="transcript-text" id="aiTranscript">Ready for your voice command.</p>
+          </div>
+        </div>
+
+        <!-- Live Tool Activity Telemetry Panel -->
+        <div class="tool-activity-card" id="toolActivityCard" style="display: none;">
+          <div class="tool-header">
+            <span class="tool-badge" id="toolNameBadge">⚡ Tool: None</span>
+            <span class="tool-status-text" id="toolStatusText">Executing...</span>
+          </div>
+          <div class="tool-body">
+            <pre class="tool-json" id="toolJsonOutput">{}</pre>
+          </div>
+        </div>
+
+        <!-- Control Action Bar -->
+        <div class="controls-panel">
+          <button class="primary-voice-btn" id="toggleSessionBtn">
+            <span class="btn-icon">🎙️</span>
+            <span class="btn-text" id="sessionBtnText">Start Voice Session</span>
+          </button>
+
+          <button class="danger-btn" id="bargeInBtn" title="Interrupt Assistant (Barge-In)">
+            <span class="btn-icon">🛑</span>
+            <span>Barge-In</span>
+          </button>
+
+          <div class="wake-word-toggle">
+            <label class="switch">
+              <input type="checkbox" id="wakeWordCheckbox" checked>
+              <span class="slider round"></span>
+            </label>
+            <span class="toggle-label">"Hey VoicePilot"</span>
+          </div>
+        </div>
+
+        <!-- Quick Text Fallback Input -->
+        <form class="text-fallback-bar" id="textInputForm">
+          <input type="text" id="textPromptInput" placeholder="Type a message or command (e.g. 'What is the weather in Bangalore?')..." autocomplete="off" />
+          <button type="submit" id="sendTextBtn" class="send-btn">Send</button>
+        </form>
+
+        <!-- Real-Time Latency Metrics Bar -->
+        <div class="latency-hud">
+          <div class="metric-item">
+            <span class="metric-label">Tool Latency</span>
+            <span class="metric-value" id="metricTool">0.00s</span>
+          </div>
+          <div class="metric-divider"></div>
+          <div class="metric-item">
+            <span class="metric-label">LLM 1st Token</span>
+            <span class="metric-value" id="metricLlm">0.00s</span>
+          </div>
+          <div class="metric-divider"></div>
+          <div class="metric-item">
+            <span class="metric-label">TTS 1st Audio</span>
+            <span class="metric-value" id="metricTts">0.00s</span>
+          </div>
+          <div class="metric-divider"></div>
+          <div class="metric-item highlight">
+            <span class="metric-label">Total Round-Trip</span>
+            <span class="metric-value" id="metricTotal">0.00s</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Live Persistent Data & Tools Dashboard -->
+      <aside class="side-dashboard">
+        <!-- Reminders Card -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>⏰ Reminders</h3>
+            <span class="count-pill" id="reminderCount">0</span>
+          </div>
+          <div class="card-list" id="remindersList">
+            <div class="empty-state">No active reminders. Try saying: "Remind me tomorrow at 9 AM to study DBMS"</div>
+          </div>
+        </div>
+
+        <!-- Tasks Card -->
+        <div class="dashboard-card">
+          <div class="card-header">
+            <h3>📋 Tasks & To-Dos</h3>
+            <span class="count-pill" id="taskCount">0</span>
+          </div>
+          <div class="card-list" id="tasksList">
+            <div class="empty-state">No tasks created. Try saying: "Create a high priority task to finish Python assignment"</div>
+          </div>
+        </div>
+
+        <!-- Quick Demo Prompts -->
+        <div class="dashboard-card demo-prompts-card">
+          <div class="card-header">
+            <h3>💡 Quick Demo Actions</h3>
+          </div>
+          <div class="demo-buttons">
+            <button class="demo-pill" data-prompt="What's the weather in Bangalore?">🌤️ Weather in Bangalore</button>
+            <button class="demo-pill" data-prompt="What about tomorrow?">📅 What about tomorrow?</button>
+            <button class="demo-pill" data-prompt="Remind me tomorrow at 9 AM to study DBMS.">⏰ Set DBMS Reminder</button>
+            <button class="demo-pill" data-prompt="Create a high priority task to finish Python assignment.">📋 Add Python Task</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2>VoicePilot Settings</h2>
+          <button class="close-btn" id="closeSettingsBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="modalOpenaiKey">OpenAI API Key (Optional override)</label>
+            <input type="password" id="modalOpenaiKey" placeholder="sk-..." />
+            <small>Leave empty to use backend .env configuration</small>
+          </div>
+          <div class="form-group">
+            <label for="modalModelSelect">LLM Model</label>
+            <select id="modalModelSelect">
+              <option value="gpt-4o-mini">gpt-4o-mini (Recommended for low-latency)</option>
+              <option value="gpt-4o">gpt-4o</option>
+              <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="modalElevenLabsKey">ElevenLabs API Key (Optional)</label>
+            <input type="password" id="modalElevenLabsKey" placeholder="xi-..." />
+            <small>If omitted, ultra-fast Microsoft Neural Voice (Edge-TTS) is used</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="secondary-btn" id="cancelSettingsBtn">Cancel</button>
+          <button class="primary-btn" id="saveSettingsBtn">Save Settings</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
