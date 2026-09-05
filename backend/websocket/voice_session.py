@@ -313,8 +313,18 @@ class VoiceSession:
             elif msg_type == "config_update":
                 # Update runtime API keys or models from UI settings
                 cfg = data.get("config", {})
-                if "openai_key" in cfg and cfg["openai_key"]:
-                    self.agent = VoicePilotAgent(api_key=cfg["openai_key"], model=cfg.get("model"))
+                gemini_key = cfg.get("gemini_key")
+                gemini_model = cfg.get("gemini_model")
+                openai_key = cfg.get("openai_key")
+                openai_model = cfg.get("model")
+
+                if gemini_key:
+                    self.agent = VoicePilotAgent(api_key=gemini_key, model=gemini_model)
+                elif openai_key:
+                    self.agent = VoicePilotAgent(api_key=openai_key, model=openai_model)
+                elif gemini_model:
+                    self.agent = VoicePilotAgent(model=gemini_model)
+
                 if "elevenlabs_key" in cfg:
                     self.tts_service = StreamingTTSService(
                         elevenlabs_key=cfg["elevenlabs_key"],

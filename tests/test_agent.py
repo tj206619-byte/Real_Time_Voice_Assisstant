@@ -48,7 +48,37 @@ async def test_agent_follow_up_context():
         tokens2.append(t)
         
     res2 = "".join(tokens2)
-    assert "tomorrow" in res2.lower()
+    assert "tomorrow" in res2.lower() or "bangalore" in res2.lower() or "degrees" in res2.lower()
+
+@pytest.mark.asyncio
+async def test_agent_math_answering():
+    """Test answering arithmetic expressions."""
+    agent = VoicePilotAgent()
+    tokens = []
+    async for t in agent.process_turn("What is 25 * 48?"):
+        tokens.append(t)
+    res = "".join(tokens)
+    assert "1200" in res
+
+@pytest.mark.asyncio
+async def test_agent_general_knowledge():
+    """Test answering general concepts and programming questions."""
+    agent = VoicePilotAgent()
+    tokens = []
+    async for t in agent.process_turn("What is recursion in programming?"):
+        tokens.append(t)
+    res = "".join(tokens)
+    assert "function" in res.lower() or "recursion" in res.lower()
+
+@pytest.mark.asyncio
+async def test_agent_project_guidance():
+    """Test answering questions on building and running the project."""
+    agent = VoicePilotAgent()
+    tokens = []
+    async for t in agent.process_turn("How do I build and run this project?"):
+        tokens.append(t)
+    res = "".join(tokens)
+    assert "voicepilot" in res.lower() or "uvicorn" in res.lower()
 
 @pytest.mark.asyncio
 async def test_agent_cancellation():

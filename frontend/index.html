@@ -172,6 +172,8 @@
           <div class="demo-buttons">
             <button class="demo-pill" data-prompt="What's the weather in Bangalore?">🌤️ Weather in Bangalore</button>
             <button class="demo-pill" data-prompt="What about tomorrow?">📅 What about tomorrow?</button>
+            <button class="demo-pill" data-prompt="What is 25 * 48?">🔢 Calculate 25 * 48</button>
+            <button class="demo-pill" data-prompt="Explain what recursion is in programming in 2 sentences.">🧠 Explain Recursion</button>
             <button class="demo-pill" data-prompt="Remind me tomorrow at 9 AM to study DBMS.">⏰ Set DBMS Reminder</button>
             <button class="demo-pill" data-prompt="Create a high priority task to finish Python assignment.">📋 Add Python Task</button>
           </div>
@@ -188,16 +190,16 @@
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label for="modalOpenaiKey">OpenAI API Key (Optional override)</label>
-            <input type="password" id="modalOpenaiKey" placeholder="sk-..." />
-            <small>Leave empty to use backend .env configuration</small>
+            <label for="modalGeminiKey">Google Gemini API Key</label>
+            <input type="password" id="modalGeminiKey" placeholder="Enter Gemini API key..." />
+            <small>Leave empty to use server environment key</small>
           </div>
           <div class="form-group">
-            <label for="modalModelSelect">LLM Model</label>
-            <select id="modalModelSelect">
-              <option value="gpt-4o-mini">gpt-4o-mini (Recommended for low-latency)</option>
-              <option value="gpt-4o">gpt-4o</option>
-              <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+            <label for="modalGeminiModel">Gemini Model</label>
+            <select id="modalGeminiModel">
+              <option value="gemini-3.6-flash" selected>gemini-3.6-flash (Fast & Accurate)</option>
+              <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+              <option value="gemini-2.5-pro">gemini-2.5-pro</option>
             </select>
           </div>
           <div class="form-group">

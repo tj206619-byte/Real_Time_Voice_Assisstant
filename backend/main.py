@@ -56,6 +56,8 @@ async def health_check():
         "status": "online",
         "app": settings.APP_NAME,
         "version": settings.VERSION,
+        "gemini_configured": bool(settings.GEMINI_API_KEY and not settings.GEMINI_API_KEY.startswith("your_")),
+        "gemini_model": settings.GEMINI_MODEL,
         "openai_configured": bool(settings.OPENAI_API_KEY and not settings.OPENAI_API_KEY.startswith("your_")),
         "deepgram_configured": bool(settings.DEEPGRAM_API_KEY and not settings.DEEPGRAM_API_KEY.startswith("your_")),
         "elevenlabs_configured": bool(settings.ELEVENLABS_API_KEY and not settings.ELEVENLABS_API_KEY.startswith("your_"))

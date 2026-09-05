@@ -11,15 +11,15 @@ class VoicePilotClient {
     this.isPlaying = false;
     this.isSessionActive = false;
     this.currentResponseId = 0;
-    
+
     // Playback queue
     this.audioQueue = [];
     this.activeSourceNodes = [];
-    
+
     // Speech Recognition (Web Speech API fallback/companion)
     this.recognition = null;
     this.wakeWordActive = true;
-    
+
     // Canvas & Visualizer
     this.canvas = document.getElementById("waveformCanvas");
     this.canvasCtx = this.canvas.getContext("2d");
@@ -43,7 +43,7 @@ class VoicePilotClient {
     this.toolNameBadge = document.getElementById("toolNameBadge");
     this.toolStatusText = document.getElementById("toolStatusText");
     this.toolJsonOutput = document.getElementById("toolJsonOutput");
-    
+
     // Dashboard elements
     this.remindersList = document.getElementById("remindersList");
     this.reminderCount = document.getElementById("reminderCount");
@@ -72,7 +72,7 @@ class VoicePilotClient {
   initEventListeners() {
     this.toggleSessionBtn.addEventListener("click", () => this.toggleSession());
     this.bargeInBtn.addEventListener("click", () => this.triggerBargeIn());
-    
+
     this.wakeWordCheckbox.addEventListener("change", (e) => {
       this.wakeWordActive = e.target.checked;
     });
@@ -116,7 +116,7 @@ class VoicePilotClient {
   connectWebSocket() {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws/voice`;
-    
+
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
@@ -337,7 +337,7 @@ class VoicePilotClient {
 
       const source = this.audioContext.createMediaStreamSource(this.mediaStream);
       this.audioProcessor = this.audioContext.createScriptProcessor(4096, 1, 1);
-      
+
       source.connect(this.analyser);
       source.connect(this.audioProcessor);
       this.audioProcessor.connect(this.audioContext.destination);
@@ -346,7 +346,7 @@ class VoicePilotClient {
       this.audioProcessor.onaudioprocess = (e) => {
         if (!this.isSessionActive) return;
         const inputData = e.inputBuffer.getChannelData(0);
-        
+
         // Calculate RMS audio energy
         let sum = 0;
         for (let i = 0; i < inputData.length; i++) {
@@ -380,9 +380,9 @@ class VoicePilotClient {
       this.isSessionActive = true;
       this.toggleSessionBtn.classList.add("active");
       this.sessionBtnText.textContent = "Listening (Active)";
-      
+
       if (this.recognition) {
-        try { this.recognition.start(); } catch (e) {}
+        try { this.recognition.start(); } catch (e) { }
       }
 
       if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -412,7 +412,7 @@ class VoicePilotClient {
       this.audioProcessor = null;
     }
     if (this.recognition) {
-      try { this.recognition.stop(); } catch (e) {}
+      try { this.recognition.stop(); } catch (e) { }
     }
 
     this.flushAudioQueue();
@@ -471,7 +471,7 @@ class VoicePilotClient {
 
     this.recognition.onend = () => {
       if (this.isSessionActive) {
-        try { this.recognition.start(); } catch (e) {}
+        try { this.recognition.start(); } catch (e) { }
       }
     };
   }
@@ -508,58 +508,94 @@ class VoicePilotClient {
   async queueAudioChunk(base64Data) {
     try {
       await this.initAudioContext();
+
       const binaryString = window.atob(base64Data);
       const len = binaryString.length;
       const bytes = new Uint8Array(len);
+
       for (let i = 0; i < len; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      const audioBuffer = await this.audioContext.decodeAudioData(bytes.buffer.slice(0));
-      this.audioQueue.push(audioBuffer);
+      // Store encoded audio chunks instead of trying to decode
+      // every network chunk independently.
+      this.audioQueue.push(bytes);
 
       if (!this.isPlaying) {
         this.playNextChunk();
       }
     } catch (e) {
-      console.warn("[TTS Player] Decode audio error:", e);
+      console.warn("[TTS Player] Audio queue error:", e);
     }
   }
 
-  playNextChunk() {
+  async playNextChunk() {
     if (this.audioQueue.length === 0) {
       this.isPlaying = false;
       return;
     }
 
     this.isPlaying = true;
-    const buffer = this.audioQueue.shift();
-    const source = this.audioContext.createBufferSource();
-    source.buffer = buffer;
-    
-    source.connect(this.analyser);
-    source.connect(this.audioContext.destination);
 
-    this.activeSourceNodes.push(source);
+    // Collect several incoming chunks before decoding.
+    // This prevents tiny gaps between separately decoded chunks.
+    const chunks = this.audioQueue.splice(0, Math.min(this.audioQueue.length, 8));
 
-    source.onended = () => {
-      const idx = this.activeSourceNodes.indexOf(source);
-      if (idx !== -1) {
-        this.activeSourceNodes.splice(idx, 1);
+    let totalLength = 0;
+    for (const chunk of chunks) {
+      totalLength += chunk.length;
+    }
+
+    const combined = new Uint8Array(totalLength);
+    let offset = 0;
+
+    for (const chunk of chunks) {
+      combined.set(chunk, offset);
+      offset += chunk.length;
+    }
+
+    try {
+      const audioBuffer = await this.audioContext.decodeAudioData(
+        combined.buffer.slice(0)
+      );
+
+      const source = this.audioContext.createBufferSource();
+      source.buffer = audioBuffer;
+
+      source.connect(this.analyser);
+      source.connect(this.audioContext.destination);
+
+      this.activeSourceNodes.push(source);
+
+      source.onended = () => {
+        const idx = this.activeSourceNodes.indexOf(source);
+
+        if (idx !== -1) {
+          this.activeSourceNodes.splice(idx, 1);
+        }
+
+        this.playNextChunk();
+      };
+
+      source.start(0);
+    } catch (e) {
+      console.warn("[TTS Player] Combined audio decode error:", e);
+
+      // Continue with remaining audio if decoding fails.
+      this.isPlaying = false;
+
+      if (this.audioQueue.length > 0) {
+        this.playNextChunk();
       }
-      this.playNextChunk();
-    };
-
-    source.start(0);
+    }
   }
-
   flushAudioQueue() {
     this.audioQueue = [];
     for (const src of this.activeSourceNodes) {
       try {
         src.stop(0);
         src.disconnect();
-      } catch (e) {}
+      } catch (e) { }
     }
     this.activeSourceNodes = [];
     this.isPlaying = false;
@@ -582,7 +618,7 @@ class VoicePilotClient {
   startVisualizer() {
     const draw = () => {
       this.visualizerAnimationId = requestAnimationFrame(draw);
-      
+
       const width = this.canvas.width;
       const height = this.canvas.height;
       this.canvasCtx.clearRect(0, 0, width, height);
@@ -619,7 +655,7 @@ class VoicePilotClient {
         this.canvasCtx.beginPath();
         this.canvasCtx.moveTo(x1, y1);
         this.canvasCtx.lineTo(x2, y2);
-        
+
         if (this.isPlaying) {
           this.canvasCtx.strokeStyle = `rgba(0, 255, 136, ${0.4 + (value / 255) * 0.6})`;
         } else if (this.isSessionActive) {
