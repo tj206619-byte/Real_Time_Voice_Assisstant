@@ -235,7 +235,4 @@ When the user starts speaking while the assistant is in `SPEAKING` state:
 
 ---
 
-## 🤖 AI Coding Assistant Disclosure
 
-In accordance with Section 24 of the project specification:
-> **AI Coding Assistant Usage**: Antigravity AI coding assistant was used for architecture structuring, code implementation, test development, CSS design system creation, and documentation. All code, tool schemas, and audio pipelines have been reviewed, verified, and tested.
